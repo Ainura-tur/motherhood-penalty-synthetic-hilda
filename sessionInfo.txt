@@ -1,0 +1,43 @@
+# Session information for the reference computing environment.
+# Captured from sessionInfo() at the end of a full pipeline run (R 4.5.2,
+# Windows 11 x64). Package versions are identical in real and synthetic mode,
+# since both use PACKAGES.R. Reproduced here as the environment record
+# referenced in README.md, Section 4.
+
+R version 4.5.2 (2025-10-31 ucrt)
+Platform: x86_64-w64-mingw32/x64
+Running under: Windows 11 x64 (build 26100)
+
+Matrix products: default
+  LAPACK version 3.12.1
+
+locale:
+[1] LC_COLLATE=English_Australia.utf8  LC_CTYPE=English_Australia.utf8    LC_MONETARY=English_Australia.utf8 LC_NUMERIC=C
+[5] LC_TIME=English_Australia.utf8
+
+time zone: Australia/Sydney
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+ [1] future_1.67.0       MASS_7.3-65         AER_1.2-15          survival_3.8-3      car_3.1-3           carData_3.0-5       ivreg_0.6-5         grf_2.5.0
+ [9] glmnet_4.1-10       Matrix_1.7-4        ranger_0.17.0       mlr3learners_0.13.0 mlr3_1.2.0          DoubleML_1.0.2      patchwork_1.3.2     ivcrtest_0.1.0
+[17] lubridate_1.9.4     forcats_1.0.1       stringr_1.6.0       tidyverse_2.0.0     tibble_3.3.0        ggplot2_4.0.1       fixest_0.13.2       sandwich_3.1-1
+[25] lmtest_0.9-40       plm_2.6-7           purrr_1.1.0         zoo_1.8-14          readxl_1.4.5        readr_2.1.5         tidyr_1.3.1         dplyr_1.1.4
+
+loaded via a namespace (and not attached):
+ [1] Rdpack_2.6.4            rlang_1.1.7             magrittr_2.0.4          dreamerr_1.5.0          compiler_4.5.2          systemfonts_1.3.1       vctrs_0.6.5
+ [8] readstata13_0.11.0      pkgconfig_2.0.3         shape_1.4.6.1           crayon_1.5.3            backports_1.5.0         labeling_0.4.3          utf8_1.2.6
+[15] tzdb_0.5.0              haven_2.5.5             miscTools_0.6-30        ragg_1.5.0              bit_4.6.0               mlr3misc_0.19.0         clusterGeneration_1.3.8
+[22] stringmagic_1.2.0       collapse_2.1.6          uuid_1.2-1              mlr3measures_1.1.0      parallel_4.5.2          R6_2.6.1                stringi_1.8.7
+[29] RColorBrewer_1.1-3      parallelly_1.45.1       cellranger_1.1.0        numDeriv_2016.8-1.1     Rcpp_1.1.0              iterators_1.0.14        future.apply_1.20.0
+[36] JuliaConnectoR_1.1.5    timechange_0.3.0        splines_4.5.2           tidyselect_1.2.1        rstudioapi_0.17.1       abind_1.4-8             mlr3tuning_1.4.0
+[43] maxLik_1.5-2.2          codetools_0.2-20        listenv_0.10.0          lattice_0.22-7          withr_3.0.2             S7_0.2.0                pillar_1.11.1
+[50] checkmate_2.3.3         foreach_1.5.2           generics_0.1.4          vroom_1.6.6             bbotk_1.7.1             hms_1.1.4               scales_1.4.0
+[57] gtools_3.9.5            globals_0.18.0          xtable_1.8-4            glue_1.8.0              tools_4.5.2             lfe_3.1.1               data.table_1.17.8
+[64] mvtnorm_1.3-3           summclust_0.7.0         grid_4.5.2              rbibutils_2.4           bdsmatrix_1.3-7         paradox_1.0.1           nlme_3.1-168
+[71] palmerpenguins_0.1.1    Formula_1.2-5           cli_3.6.5               textshaping_1.0.4       gtable_0.3.6            digest_0.6.37           dqrng_0.4.1
+[78] lgr_0.5.0               farver_2.1.2            lifecycle_1.0.5         fwildclusterboot_0.14.3 bit64_4.6.0-1
+
