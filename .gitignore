@@ -48,3 +48,4 @@ Thumbs.db
 ~$*               # Office lock files (Word style guide, decks)
 *.RData
 tableA3_estimator_note.txt
+figures/
