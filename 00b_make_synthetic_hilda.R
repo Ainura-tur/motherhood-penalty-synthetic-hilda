@@ -310,6 +310,16 @@ panel <- panel %>%
     job_autonomy     = round(runif(n(), 0, 10)),
     looking_for_new_job = rbinom(n(), 1, 0.2),
     
+    # Life-satisfaction domains (App. C / G.15 income-effect placebo).
+    # Synthetic draws on the 0-10 HILDA scale; illustrative only.
+    losat   = round(runif(n(), 0, 10)),
+    losatfs = round(runif(n(), 0, 10)),
+    losatnl = round(runif(n(), 0, 10)),
+    losathl = round(runif(n(), 0, 10)),
+    losatsf = round(runif(n(), 0, 10)),
+    losatft = round(runif(n(), 0, 10)),
+    losateo = round(runif(n(), 0, 10)),
+    
     occupation_major_code = sample(1:8, n(), replace = TRUE),
     occupation_major = recode(as.character(occupation_major_code),
                               "1"="Managers","2"="Professionals","3"="Technicians_Trades",
@@ -443,6 +453,7 @@ col_order <- c(
   "underemployed","overemployed","precarious_score","precarious_category",
   "flexibility_any","treatment","job_satisfaction","pay_fairness","job_initiative",
   "job_security","job_worry_future","job_autonomy","looking_for_new_job",
+  "losat","losatfs","losatnl","losathl","losatsf","losatft","losateo",
   "occupation_major","occupation_major_code","industry_major","industry_major_code",
   "any_training","total_training_hours","promotion_training","maintenance_training",
   "total_training_days","avg_training_hours","total_courses","training_own_time",

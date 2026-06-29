@@ -322,6 +322,15 @@ process_wave_complete <- function(wave_num, data_dir, wpi_data) {
     jomls_say = paste0(wave_letter, "jomls"),     # "I have a lot of say about what happens on my job"
     jbnewjs = paste0(wave_letter, "jbnewjs"),     # Looked for new job in last 4 weeks
     
+    # ---- NEW: Life-satisfaction domains (for the FTB-B income-effect placebo, App. C / G.15) ----
+    losat   = paste0(wave_letter, "losat"),       # Overall life satisfaction
+    losatfs = paste0(wave_letter, "losatfs"),     # Satisfaction: financial situation (income-channel marker)
+    losatnl = paste0(wave_letter, "losatnl"),     # Satisfaction: neighbourhood (placebo)
+    losathl = paste0(wave_letter, "losathl"),     # Satisfaction: health (placebo)
+    losatsf = paste0(wave_letter, "losatsf"),     # Satisfaction: feeling safe (placebo)
+    losatft = paste0(wave_letter, "losatft"),     # Satisfaction: free time (labour-channel; excluded from placebo)
+    losateo = paste0(wave_letter, "losateo"),     # Satisfaction: employment opportunities (labour-channel; excluded)
+    
     # ---- NEW: Life events (asked annually — all waves) ----
     leprg   = paste0(wave_letter, "leprg"),      # Life event: pregnancy/birth of new child
     lemar   = paste0(wave_letter, "lemar"),      # Life event: got married
@@ -1212,6 +1221,17 @@ process_wave_complete <- function(wave_num, data_dir, wpi_data) {
       job_worry_future    = safe_numeric(., v$jomwf),     # "Worry about future of my job"
       job_autonomy        = safe_numeric(., v$jomls_say), # "Have a lot of say"
       looking_for_new_job = safe_numeric(., v$jbnewjs),   # Looked for new job last 4 weeks
+
+      # -----------------------------------------------------------
+      # 6K. LIFE-SATISFACTION DOMAINS (for App. C / G.15 income-effect placebo)
+      # -----------------------------------------------------------
+      losat   = safe_numeric(., v$losat),    # Overall life satisfaction
+      losatfs = safe_numeric(., v$losatfs),  # Financial situation (income-channel marker)
+      losatnl = safe_numeric(., v$losatnl),  # Neighbourhood (placebo)
+      losathl = safe_numeric(., v$losathl),  # Health (placebo)
+      losatsf = safe_numeric(., v$losatsf),  # Feeling safe (placebo)
+      losatft = safe_numeric(., v$losatft),  # Free time (labour channel; excluded)
+      losateo = safe_numeric(., v$losateo),  # Employment opportunities (labour channel; excluded)
       
       # -----------------------------------------------------------
       # 6K. SOCIAL CAPITAL / NETWORKING (NEW — H4 mechanism)
@@ -1929,6 +1949,9 @@ analysis_sample <- panel_full %>%
     job_satisfaction, pay_fairness, job_initiative,
     job_security, job_worry_future, job_autonomy,
     looking_for_new_job,
+    
+    # === Life-satisfaction domains (App. C / G.15 income-effect placebo) ===
+    losat, losatfs, losatnl, losathl, losatsf, losatft, losateo,
     
     # === Occupation & industry ===
     occupation_major, occupation_major_code,

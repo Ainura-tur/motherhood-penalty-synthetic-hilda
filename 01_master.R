@@ -4531,54 +4531,93 @@ if (nrow(nm) > 0 && nrow(pm) > 0) {
               nm$emp_rate - pm$emp_rate))
 }
 
+# ── PART O: estimator-aligned betaX contrast + Lee bounds (Table A4 / Table 13) ──
+#    Independent of the event study: reads only the slim panel, reuses helpers
+#    (stars_fn, rec) defined above. Writes se_ledger_A3_aligned*.csv,
+#    betaX_lee_bounds.csv, mincer_gap_betaX_selcorr.csv.
+if (file.exists("02b_part_o_aligned.R")) {
+  tryCatch(source("02b_part_o_aligned.R"),
+           error = function(e)
+             cat(sprintf("  NOTE: 02b_part_o_aligned.R did not complete (%s); run it standalone.\n",
+                         conditionMessage(e))))
+} else {
+  cat("  NOTE: 02b_part_o_aligned.R not found; Table A4 / Table 13 betaX bounds not refreshed.\n")
+}
+
 # ==============================================================================
-# PART G: FTB-B REFORM 1 IV  (sourced from MASTER_PART_G_FTBB_IV.R)
+# PART G: FTB-B REFORM 1 IV  (sourced from 04_part_g_ftbb_iv.R)
 # Identifies theta on S_ct using the 2015 FTB-B income-threshold reform.
 # Produces ftbb_reform1_iv_results.rds and the iv_summary table.
 # ==============================================================================
 
 # ── Child-penalty event study (Sun-Abraham); writes cs_event_study_results.rds ──
 #    Reuses the full `panel` already in memory; figure is left to RUN_FIGURES_hh.R.
-if (file.exists("CS_event_study.R")) {
+if (file.exists("02_cs_event_study.R")) {
   options(cs_estimation_only = TRUE)
-  tryCatch(source("CS_event_study.R"),
+  tryCatch(source("02_cs_event_study.R"),
            error = function(e)
-             cat(sprintf("  NOTE: CS_event_study.R did not complete (%s); run it standalone.\n",
+             cat(sprintf("  NOTE: 02_cs_event_study.R did not complete (%s); run it standalone.\n",
                          conditionMessage(e))))
   options(cs_estimation_only = NULL)
 } else {
-  cat("  NOTE: CS_event_study.R not found; cs_event_study_results.rds not refreshed.\n")
+  cat("  NOTE: 02_cs_event_study.R not found; cs_event_study_results.rds not refreshed.\n")
 }
 
-if (file.exists("MASTER_PART_G_FTBB_IV.R")) {
-  source("MASTER_PART_G_FTBB_IV.R")
+# ── Implied dynamic cost, concave/tenure-varying return (07b) ──────────────────
+#    Reads cs_event_study_results.rds; writes implied_dynamic_cost_concave_results.rds.
+#    MUST run before 08_gelbach so the Gelbach output can read the late-horizon
+#    (k=5..10) return-times-gap share (the reliable ~29% figure for Appendix A6).
+if (file.exists("07b_implied_dynamic_cost_concave.R")) {
+  tryCatch(source("07b_implied_dynamic_cost_concave.R"),
+           error = function(e)
+             cat(sprintf("  NOTE: 07b_implied_dynamic_cost_concave.R did not complete (%s); run it standalone.\n",
+                         conditionMessage(e))))
 } else {
-  warning("MASTER_PART_G_FTBB_IV.R not found in working directory; ",
+  cat("  NOTE: 07b_implied_dynamic_cost_concave.R not found; late-horizon experience share not refreshed.\n")
+}
+
+# ── Gelbach decomposition of the post-birth wage penalty (Table 10 / App. A6) ──
+#    Runs immediately after the event study and 07b so it reuses the in-memory
+#    `panel`, the event-study roster, and the 07b late-horizon share; writes
+#    gelbach_decomposition_results.rds.
+if (file.exists("08_gelbach_decomposition.R")) {
+  tryCatch(source("08_gelbach_decomposition.R"),
+           error = function(e)
+             cat(sprintf("  NOTE: 08_gelbach_decomposition.R did not complete (%s); run it standalone.\n",
+                         conditionMessage(e))))
+} else {
+  cat("  NOTE: 08_gelbach_decomposition.R not found; Table 10 / Appendix A6 not refreshed.\n")
+}
+
+if (file.exists("04_part_g_ftbb_iv.R")) {
+  source("04_part_g_ftbb_iv.R")
+} else {
+  warning("04_part_g_ftbb_iv.R not found in working directory; ",
           "PART G skipped. FTB-B IV results will not be available.")
 }
 
 # ── PART H: policy economics of the FTB-B reform (needs Part G objects) ─────
-if (file.exists("Master_part_h_policy.R") && exists("iv_couples")) {
-  tryCatch(source("Master_part_h_policy.R"),
+if (file.exists("05_part_h_policy.R") && exists("iv_couples")) {
+  tryCatch(source("05_part_h_policy.R"),
            error = function(e)
              cat(sprintf("  NOTE: PART H did not complete (%s); run it standalone.\n",
                          conditionMessage(e))))
-} else if (!file.exists("Master_part_h_policy.R")) {
-  cat("  NOTE: Master_part_h_policy.R not found; PART H skipped.\n")
+} else if (!file.exists("05_part_h_policy.R")) {
+  cat("  NOTE: 05_part_h_policy.R not found; PART H skipped.\n")
 } else {
   cat("  NOTE: Part G objects missing; PART H skipped.\n")
 }
 
 # ── Training event study (Sun-Abraham, training outcomes) ──────────────────
-if (file.exists("training_event_study.R")) {
+if (file.exists("03_training_event_study.R")) {
   options(training_estimation_only = TRUE)
-  tryCatch(source("training_event_study.R"),
+  tryCatch(source("03_training_event_study.R"),
            error = function(e)
              cat(sprintf("  NOTE: training event study did not complete (%s).\n",
                          conditionMessage(e))))
   options(training_estimation_only = NULL)
 } else {
-  cat("  NOTE: training_event_study.R not found; skipped.\n")
+  cat("  NOTE: 03_training_event_study.R not found; skipped.\n")
 }
 # NOTE: sourced BEFORE the FINAL VERIFICATION block below so that the
 # verification's §5.10 line can read ftbb_reform1_iv_results from memory

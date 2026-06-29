@@ -2029,8 +2029,10 @@ p_iv <- ggplot(iv_df, aes(x = theta, y = spec, colour = preferred)) +
        x = expression(hat(theta)^{IV}~~"(effect of "*S[ct]*" on log hourly wage)"), y = NULL,
        caption = "HILDA W15–W24. Reform 1: $100k–$150k baseline. 95% CI, cluster: couple. Grey band = OLS scale reference.") +
   theme_paper
+if (FALSE) {  # fig_iv_coefplot removed from the paper; block disabled
 ggplot2::ggsave(file.path(outdir, "fig_iv_coefplot.pdf"), p_iv, width = 16/2.54, height = 10/2.54, units = "in", device = .pdf_device)
 cat("  figures/fig_iv_coefplot.pdf\n")
+}
 
 ## ---- fig_hw_within_fe ----
 ## Within-person FE hours adjustment upon parenthood (master post-fix / paper Table 8).
@@ -2059,8 +2061,10 @@ p_hw <- ggplot(hw_df, aes(x = sex, y = delta, fill = outcome)) +
        y = "\u0394 weekly hours (parent vs pre-parent)", x = NULL,
        caption = "HILDA Waves 12-24. Individual + wave FE. Cluster: individual. 95% CI.") +
   theme_paper
+if (FALSE) {  # fig_hw_within_fe removed from the paper; block disabled
 ggplot2::ggsave(file.path(outdir, "fig_hw_within_fe.pdf"), p_hw, width = 13/2.54, height = 9/2.54, units = "in", device = .pdf_device)
 cat("  figures/fig_hw_within_fe.pdf\n")
+}
 
 # ============================================================================
 # PART D -- Appendix: actual (ehtjb) vs Mincer-potential experience
