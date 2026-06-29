@@ -45,10 +45,9 @@ if (is.na(.this_file)) {
 }
 if (!is.na(.this_file)) {
   setwd(dirname(.this_file))
+} else if (dir.exists("C:/Users/tur277/OneDrive - CSIRO/Desktop/WG")) {
+  setwd("C:/Users/tur277/OneDrive - CSIRO/Desktop/WG")
 }
-# If the script path can't be resolved (e.g. some interactive front ends), fall
-# back to the current working directory, which run_all.R has already set to the
-# repository root. No machine-specific path is assumed.
 cat("Working directory:", getwd(), "\n")
 
 # ── Console log: mirror all output to a timestamped file ──────────────────────
@@ -564,7 +563,7 @@ ggsave( file.path(outdir, "fig2_event_study_beta2.png"), fig2, width = 13/2.54, 
 # Paper Figure 2 (fig2_employment_birth.pdf): "Women's Employment,
 #   Full-Time Rates, and Hours Collapse at Birth; Men's Are Flat"
 # Sample: Broad panel (incl. non-employed), genuine transitions only.
-#   Expected: ~2,649 genuine transitions (~1,252 men + ~1,397 women).
+#   Expected: ~2,641 genuine transitions (~1,246 men + ~1,395 women).
 cat("--- Figure 3: Employment around birth ---\n")
 
 # Derive birth event wave from ever_parent transitions.
@@ -574,8 +573,8 @@ cat("--- Figure 3: Employment around birth ---\n")
 # (ever_parent == 0) in at least one wave that precedes their first parent wave.
 # This avoids the lag(default=0) artefact that flags people who enter the panel
 # already as parents (in any wave 15–24) as false transitions.
-# This exactly mirrors the transition logic in Part A and should yield ~2,649
-# genuine transitions (~1,252 men + ~1,397 women).
+# This exactly mirrors the transition logic in Part A and should yield ~2,641
+# genuine transitions (~1,246 men + ~1,395 women).
 birth_events_fig3 <- panel %>%
   filter(!is.na(ever_parent)) %>%
   group_by(person_id) %>%
@@ -589,7 +588,7 @@ birth_events_fig3 <- panel %>%
 
 cat(sprintf("  birth_events_fig3: %d genuine within-panel transitions\n",
             nrow(birth_events_fig3)))
-cat(sprintf("  (expected ~2,649: ~1,252 men + ~1,397 women from Part A)\n"))
+cat(sprintf("  (expected ~2,641: ~1,246 men + ~1,395 women from Part A)\n"))
 
 birth_emp <- panel %>%
   inner_join(birth_events_fig3, by = "person_id") %>%

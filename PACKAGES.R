@@ -34,7 +34,6 @@ cran_pkgs <- c(
   ranger       = "0.17.0",  # random forest nuisance learner
   glmnet       = "4.1-10",  # LASSO nuisance learner
   grf          = "2.5.0",   # causal forest
-  ivreg        = "0.6-5",   # IV regression (required by ivcrtest)
   car          = "3.1-3",   # linear hypothesis tests
   AER          = "1.2-15",  # applied econometrics helpers
   MASS         = "7.3-65",  # (loaded transitively; pinned for reproducibility)
@@ -67,23 +66,5 @@ for (pkg in names(cran_pkgs)) {
   cat(sprintf("  %-13s %-10s %s\n", pkg, have, flag))
 }
 
-# ── ivcrtest: the Contextual Robustness (CR) test (Ichimura 2025) ─────────────
-# ivcrtest is NOT on CRAN. It is the custom package that provides
-# ivcrtest::iv_cr_test(), used in PART C of MASTER_hh.R. The reference run
-# used ivcrtest 0.1.0, which depends on ivreg (installed above).
-#
-# Install it from its source before running the analysis, for example:
-#   # remotes::install_github("<owner>/ivcrtest")        # if hosted on GitHub
-#   # install.packages("ivcrtest_0.1.0.tar.gz", repos = NULL, type = "source")
-# Replace the source above with the actual location of the package.
-if (!requireNamespace("ivcrtest", quietly = TRUE)) {
-  cat("\n  ivcrtest      MISSING (custom package, not on CRAN)\n")
-  cat("    Install ivcrtest 0.1.0 from source before running the analysis;\n")
-  cat("    see the note at the bottom of PACKAGES.R. PART C (the CR test)\n")
-  cat("    cannot run without it.\n")
-} else {
-  cat(sprintf("  %-13s %-10s %s\n", "ivcrtest",
-              as.character(utils::packageVersion("ivcrtest")), "ref 0.1.0"))
-}
 
 cat("\nPACKAGES.R complete.\n")

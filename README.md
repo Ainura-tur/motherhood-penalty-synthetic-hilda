@@ -7,10 +7,8 @@ Ainura Tursunalieva (CSIRO) and Ratbek Dzhumashev (Monash University)
 This README follows the Social Science Data Editors template. It documents the
 data, the code, the computing environment, and the steps an independent
 researcher needs to reproduce every table and figure in the paper. The analysis
-data are confidential and are not included in this package; Section 2 explains
-how to obtain them. The package also ships a synthetic dataset so the entire
-pipeline can be run and inspected without the confidential data, as described in
-Section 1a.
+data are confidential and are not included in this package; the Data
+availability and provenance section below explains how to obtain them.
 
 ---
 
@@ -23,59 +21,8 @@ sample construction, the main analysis (Parts A to F), the FTB-B reform
 instrumental-variables analysis, the policy-economics extension, the
 child-penalty and training event studies, and all publication figures.
 
-The reference run on the confidential data completed in approximately 4 hours
-15 minutes on the machine described in Section 4. In synthetic mode (Section 1a)
-the pipeline completes in a few minutes.
-
----
-
-## 1a. Running the pipeline (real data and synthetic mode)
-
-The pipeline runs in two modes, selected by the `DATA_MODE` setting in
-`config.R`, or by the `DATA_MODE` environment variable, which overrides the file
-without editing it. The default is synthetic, so a fresh clone runs end to end
-with no data and no manual setup.
-
-`DATA_MODE = "synthetic"` (default). The three analysis panels are built on the
-fly by `00b_make_synthetic_hilda.R` from a fixed seed, and the full analysis and
-all figures run against them. This requires no access to HILDA and reaches every
-code path: the couple analysis, the housework mediation, the panel and FTB-B
-instrumental-variables steps, the double machine learning and causal forest, the
-robustness battery, the event studies, and the figures. Use this mode to verify
-that the code installs and runs, to read the pipeline, or to develop against it.
-
-`DATA_MODE = "real"`. The pipeline uses the panels built from the restricted
-HILDA release by `00_load_hilda.R`. Only the authors and approved researchers
-who have obtained the data under the confidentiality deed (Section 2) can use
-this mode. Build the panels once with `Rscript 00_load_hilda.R`, then run the
-rest.
-
-To run the full pipeline from the repository root:
-
-```sh
-Rscript run_all.R                      # synthetic by default
-DATA_MODE=real Rscript run_all.R       # uses the restricted panels (authors)
-```
-
-In synthetic mode `run_all.R` builds the panels if they are not already on disk,
-then runs `01_master.R` (which sources the event studies and the FTB-B IV) and
-`06_figures.R` in one session. In real mode it stops with an instruction if the
-panels are missing, rather than overwriting them.
-
-### Synthetic data are illustrative, not the paper's results
-
-The synthetic panels are random data generated to match the schema of the real
-analysis panels: the same variables, types, and factor levels, the same panel
-and couple structure, and a built-in motherhood interruption and
-education-by-experience wage gradient so the estimates carry sensible signs.
-They exist so the code can be run and inspected without the confidential data.
-
-Any number produced in synthetic mode is an artefact of the random generator.
-These numbers are not estimates of the paper's quantities, will change with the
-seed or sample size, and must not be reported or cited. Every result, table, and
-figure in the manuscript comes from `DATA_MODE = "real"` on HILDA General
-Release 24. The synthetic panels and all generated outputs are gitignored and
-are not part of the distributed package.
+The reference run completed in approximately 4 hours 15 minutes on the machine
+described in Section 4.
 
 ---
 
@@ -137,7 +84,7 @@ Survey, General Release 24.* ADA Dataverse. https://doi.org/10.26193/6M1BMR.
 | DOI | 10.26193/6M1BMR |
 | Access | Restricted; free to approved researchers under a confidentiality deed |
 | Format expected | Stata `.dta` wave files from the raw release |
-| Location in package | Place the raw release where `config.R`'s `data_dir` points (set `HILDA_DATA_DIR`); it is gitignored and not distributed |
+| Location in package | Place the raw release in `data/raw/`; it is gitignored and not distributed |
 
 The HILDA release is the only source dataset. No other external data are used.
 
@@ -145,20 +92,15 @@ The HILDA release is the only source dataset. No other external data are used.
 
 ## 3. Dataset list
 
-The pipeline builds three derived analysis panels. In real mode they are written
-by `00_load_hilda.R` from the raw release; in synthetic mode they are written by
-`00b_make_synthetic_hilda.R` from a fixed seed. Both modes write the same three
-filenames with the same schema, so every downstream stage is identical across
-modes. The panels, and the intermediate result caches the stages write
-(`cs_event_study_results.rds`, `ftbb_reform1_iv_results.rds`,
-`event_study_beta2.rds`, `robustness_forest_data.rds`, `oster_bounds.rds`, and
-others), are all `.rds`, are gitignored, and are not distributed.
+The pipeline builds three derived analysis panels from the raw release. These are
+intermediate files, are gitignored, and are not distributed. They are written to
+`data/analysis/` by the loader.
 
-| File | Built by (real / synthetic) | Used by |
+| File | Built by | Used by |
 | --- | --- | --- |
-| `hilda_panel_data_W12_W24_slim.rds` | `00_load_hilda.R` / `00b_make_synthetic_hilda.R` | Parts A to F (`01_master.R`) |
-| `hilda_panel_data_extended.rds` | `00_load_hilda.R` / `00b_make_synthetic_hilda.R` | Parts G and H |
-| `hilda_panel_data_training.rds` | `00_load_hilda.R` / `00b_make_synthetic_hilda.R` | training event study |
+| `hilda_panel_data_W12_W24_slim.rds` | `00_load_hilda.R` | Parts A to F (`01_master_hh.R`) |
+| `hilda_panel_data_extended.rds` | `00_load_hilda.R` | Parts G and H |
+| `hilda_panel_data_training.rds` | `00_load_hilda.R` | training event study |
 
 ---
 
@@ -167,119 +109,101 @@ others), are all `.rds`, are gitignored, and are not distributed.
 ### 4.1 Software
 
 The reference results were produced with R 4.5.2 (2025-10-31) on Windows 11 x64.
-The full environment is recorded in `sessionInfo.txt`. Install and version-check
-dependencies with:
+The full environment is recorded in `sessionInfo.txt`, and pinned versions are in
+`renv.lock`. Restore the environment with:
 
 ```r
-source("PACKAGES.R")
+renv::restore()
 ```
 
-`PACKAGES.R` installs and version-checks the CRAN packages: tidyverse, fixest,
-lmtest, sandwich, patchwork, DoubleML, mlr3, mlr3learners, ranger, glmnet, grf,
-ivreg, car, AER, MASS, future, and haven. If you maintain a `renv` lockfile,
-`renv::restore()` is an equivalent route.
-
-One dependency is not on CRAN. The Contextual Robustness test in `01_master.R`
-uses `ivcrtest::iv_cr_test()` from the custom package `ivcrtest` (reference
-version 0.1.0), which depends on `ivreg`. Install `ivcrtest` from source before
-running; the relevant section stops with an instruction if it is absent, and it
-is the only section that needs it.
-
-Note on namespace masking: `config.R` rebinds the dplyr verbs that other attached
-packages mask (`select`, `filter`, `mutate`, `between`, and others) to their
-dplyr definitions. `run_all.R` sources `config.R` after `PACKAGES.R` so these
-bindings take effect for the whole run.
+If `renv` is not used, install dependencies with `source("PACKAGES.R")`, which
+installs and version-checks the CRAN packages: tidyverse, fixest, lmtest,
+sandwich, patchwork, DoubleML, mlr3, mlr3learners, ranger, glmnet, grf,
+car, AER, MASS, and future.
 
 ### 4.2 Controlled randomness
 
-In real mode the seed is set to 42 in `01_master.R`, before the double machine
-learning and causal-forest steps; the causal forest and the cross-fitting folds
-are the only sources of randomness. In synthetic mode the data generator uses its
-own fixed seed in `00b_make_synthetic_hilda.R`, so the synthetic panels are
-reproducible across runs.
+The random seed is set to 42 in `01_master_hh.R`, before the double machine
+learning and causal-forest steps. The causal forest and the cross-fitting folds
+are the only sources of randomness.
 
 ### 4.3 Memory and runtime
 
-The reference run on the confidential data completed in approximately 4 hours
-15 minutes. A workstation with at least 16 GB of RAM is recommended because the
+The reference run completed in approximately 4 hours 15 minutes (start
+2026-06-15 19:49, finish 2026-06-16 00:05). Peak memory was not separately
+recorded; a workstation with at least 16 GB of RAM is recommended because the
 causal forest and double machine learning steps are memory intensive. The thread
 count is detected automatically: on a SLURM batch job the pipeline uses
 `SLURM_CPUS_PER_TASK`, and interactively it caps at four threads. Override with
-the `MASTER_HH_THREADS` environment variable. In synthetic mode, with a smaller
-default sample, the pipeline completes in a few minutes; set `N_PERSONS` to
-adjust the synthetic sample size.
+the `MASTER_HH_THREADS` environment variable.
 
 ---
 
 ## 5. Description of programs and code
 
-Configuration and orchestration live alongside the analysis scripts in the
-repository root; the scripts source each other by name, so they must stay in one
-folder. The numbered scripts run in sequence. The ordering matters: Part H
-requires in-memory objects from Part G and the results file written by the
-child-penalty event study, so the event studies run before the policy extension.
+Configuration and orchestration live at the repository root. The numbered
+scripts in `code/` run in sequence. The ordering matters: Part H requires
+in-memory objects from Part G and the results file written by the child-penalty
+event study, so the event studies run before the policy extension.
 
 ```
 repo-root/
-├── README.md                     this file
-├── LICENSE                       BSD-3-Clause for code
+├── README.md                  this file
+├── LICENSE.txt                BSD-3-Clause for code; CC-BY-4.0 for documentation
 ├── .gitignore
-├── sessionInfo.txt               environment record from the reference run
-├── config.R                      DATA_MODE, paths, and dplyr namespace guards
-├── run_all.R                     master runner: PACKAGES, config, data, analysis, figures
-├── PACKAGES.R                    install and version-check dependencies
-├── 00_load_hilda.R               real mode: raw HILDA waves to the three analysis panels
-├── 00b_make_synthetic_hilda.R    synthetic mode: seed-based stand-in panels (same schema)
-├── 01_master.R                   Parts A to F: main couple analysis, housework
-│                                 mediation, panel IV and CR test, couple DML and
-│                                 causal forest, robustness battery, Oster bounds.
-│                                 Sources 02, 04, 05, 03 in that order.
-├── 02_cs_event_study.R           child-penalty event study (Sun and Abraham 2021)
-├── 03_training_event_study.R     training event study around first birth
-├── 04_part_g_ftbb_iv.R           FTB-B 2015 reform simulated-instrument IV (Part G)
-├── 05_part_h_policy.R            policy economics of the FTB-B reform (Part H)
-└── 06_figures.R                  all publication figures
+├── renv.lock                  pinned R and package versions
+├── sessionInfo.txt            environment record from the reference run
+├── config.R                   sets data_dir and output_dir in one place
+├── run_all.R                  master runner; sources code/ scripts in order
+├── code/
+│   ├── 00_load_hilda.R        raw HILDA waves to the three analysis panels
+│   ├── 01_master_hh.R         Parts A to F: main couple analysis, housework
+│   │                          mediation, panel IV (diagnostic), couple DML and
+│   │                          causal forest, robustness battery, Oster bounds
+│   ├── 02_cs_event_study.R    child-penalty event study (Sun and Abraham 2021)
+│   ├── 03_training_event_study.R  training event study around first birth
+│   ├── 04_part_g_ftbb_iv.R    FTB-B 2015 reform simulated-instrument IV
+│   ├── 05_part_h_policy.R     policy economics of the FTB-B reform
+│   └── 06_figures.R           all publication figures
+├── data/
+│   ├── raw/                   empty; replicator places HILDA Release 24 here
+│   │   └── README.md          which waves, how to obtain, the DOI
+│   └── analysis/              derived panels written by 00_load_hilda.R (gitignored)
+├── output/
+│   ├── tables/
+│   └── figures/
+└── docs/
+    └── variables.md           HILDA variables used and their derivations
 ```
 
-Outputs are written to `output/figures/` and `output/tables/`, and per-run console
-logs to `run_logs/`. These directories, the analysis panels, and the intermediate
-`.rds` caches are all gitignored.
-
-Correspondence to the original working filenames, for anyone holding an earlier
-copy: `01_master.R` was `MASTER_hh.R`; `02_cs_event_study.R` was
-`CS_event_study.R`; `03_training_event_study.R` was `training_event_study.R`;
-`04_part_g_ftbb_iv.R` was `MASTER_PART_G_FTBB_IV.R`; `05_part_h_policy.R` was
-`Master_part_h_policy.R`; and `06_figures.R` was `RUN_FIGURES_hh.R`.
+This layout renames the working scripts to the numbered scheme above. The
+correspondence to the original filenames is: `00_load_hilda.R` is the HILDA
+loader; `01_master_hh.R` is `MASTER_hh.R`; `02_cs_event_study.R` is
+`CS_event_study.R`; `03_training_event_study.R` is `training_event_study.R`;
+`04_part_g_ftbb_iv.R` is `MASTER_PART_G_FTBB_IV.R`; `05_part_h_policy.R` is
+`Master_part_h_policy.R`; and `06_figures.R` is `RUN_FIGURES_hh.R`.
 
 ---
 
 ## 6. Instructions to replicators
 
-To run on the confidential data and reproduce the paper:
-
 1. Obtain HILDA General Release 24 from the Australian Data Archive, following
-   Section 2. Place the raw wave files where `config.R`'s `data_dir` points (set
-   the `HILDA_DATA_DIR` environment variable, or edit `config.R`).
-2. Install dependencies with `source("PACKAGES.R")`, and install the custom
-   `ivcrtest` package from source.
-3. From the repository root, build the panels and run the full pipeline:
+   Section 2. Place the raw wave files in `data/raw/`.
+2. Restore the environment with `renv::restore()`, or run `source("PACKAGES.R")`.
+3. Set the data and output paths in `config.R` if they differ from the defaults.
+4. From the repository root, run the full pipeline:
 
    ```sh
-   Rscript 00_load_hilda.R            # build the three analysis panels
-   DATA_MODE=real Rscript run_all.R   # run the analysis and write all exhibits
+   Rscript run_all.R
    ```
 
-   `run_all.R` runs the full analysis and writes all tables and figures to
-   `output/`. It runs in a single R session because the figure script reuses
-   objects built earlier in the run.
-
-To run without the confidential data, using the synthetic panels, simply run
-`Rscript run_all.R`; synthetic is the default mode and the panels are built
-automatically. See Section 1a for the caveat on synthetic results.
+   `run_all.R` builds the analysis panels, runs the full analysis, and writes all
+   tables and figures to `output/`. It runs in a single R session because the
+   figure script reuses objects built earlier in the run.
 
 To run a single stage, source `config.R` first, then the numbered script. Stages
-02 through 06 assume the analysis panels are on disk, and stage 05 assumes stages
-02 and 04 have already run in the same session.
+02 through 06 assume the analysis panels from stage 00 are on disk, and stage 05
+assumes stages 02 and 04 have already run in the same session.
 
 ---
 
@@ -294,21 +218,21 @@ produced by the upstream stages noted in the dependency column.
 
 | Manuscript label | Exhibit | Produced by |
 | --- | --- | --- |
-| `tab:panel_descriptives` | Descriptive statistics by motherhood group | `01_master.R` (descriptives) |
-| `tab:couple_descriptives` | Within-couple labour-market outcomes | `01_master.R` (Part A) |
+| `tab:panel_descriptives` | Descriptive statistics by motherhood group | `01_master_hh.R` (descriptives) |
+| `tab:couple_descriptives` | Within-couple labour-market outcomes | `01_master_hh.R` (Part A) |
 | `tab:hypotheses` | Empirical hypotheses and estimands | Set in the manuscript; not computed |
-| `tab:housework_4grp` | Housework hours by gender and parenthood | `01_master.R` (Part B) |
-| `tab:hw_within_fe` | Within-person hours change at parenthood | `01_master.R` (Part B) |
-| `tab:specialisation` | Specialisation test, cross-partner elasticity | `01_master.R` (Part A) |
+| `tab:housework_4grp` | Housework hours by gender and parenthood | `01_master_hh.R` (Part B) |
+| `tab:hw_within_fe` | Within-person hours change at parenthood | `01_master_hh.R` (Part B) |
+| `tab:specialisation` | Specialisation test, cross-partner elasticity | `01_master_hh.R` (Part A) |
 | `tab:event_study` | Child-penalty event study, women minus men | `02_cs_event_study.R` |
 | `tab:iv_main` | FTB-B first stage and contemporaneous-wage IV | `04_part_g_ftbb_iv.R` |
 | (training participation table) | Training around first birth, women minus men | `03_training_event_study.R` |
-| `tab:within_couple` | Within-couple DML gender gap in complementarity | `01_master.R` (Part D) |
-| `tab:main_beta2` | Education-experience complementarity by group | `01_master.R` (Parts D, E) |
-| `tab:heckman` | Heckman selection correction | `01_master.R` (Part E) |
-| `tab:transitioner_bound` | Within-person complementarity by transition type | `01_master.R` (Part E) |
-| `tab:definition_sensitivity` | Motherhood-definition sensitivity | `01_master.R` (Part E) |
-| `tab:robustness_master` | Master robustness summary | `01_master.R` (Part E) |
+| `tab:within_couple` | Within-couple DML gender gap in complementarity | `01_master_hh.R` (Part D) |
+| `tab:main_beta2` | Education-experience complementarity by group | `01_master_hh.R` (Parts D, E) |
+| `tab:heckman` | Heckman selection correction | `01_master_hh.R` (Part E) |
+| `tab:transitioner_bound` | Within-person complementarity by transition type | `01_master_hh.R` (Part E) |
+| `tab:definition_sensitivity` | Motherhood-definition sensitivity | `01_master_hh.R` (Part E) |
+| `tab:robustness_master` | Master robustness summary | `01_master_hh.R` (Part E) |
 | `tab:ftbb_first_stage` | FTB-B first stages and implied elasticity | `04_part_g_ftbb_iv.R`, `05_part_h_policy.R` |
 
 ### Figures
@@ -316,21 +240,22 @@ produced by the upstream stages noted in the dependency column.
 | Figure file | Exhibit | Upstream dependency |
 | --- | --- | --- |
 | `fig2_event_study_beta2.pdf` | Complementarity event study | `event_study_beta2.rds` (Part E) |
-| `fig3_employment_birth.pdf` | Employment around birth | `01_master.R` |
+| `fig3_employment_birth.pdf` | Employment around birth | `01_master_hh.R` |
 | `fig5C1_gender_gap_vanishes.pdf` | Within-couple gender gap | Part D objects |
 | `fig7_robustness_forest.pdf` | Robustness forest | `robustness_forest_data.rds` (Part E) |
 | `fig_event_study.pdf` | Child-penalty event study | `cs_event_study_results.rds` (stage 02) |
 | `fig_training_event_study.pdf` | Training event study | `training_event_study_results.rds` (stage 03) |
 | `fig_iv_coefplot.pdf` | FTB-B IV coefficients | `ftbb_reform1_iv_results.rds` (stage 04) |
-| `fig_hw_within_fe.pdf` | Within-couple housework allocation | `01_master.R` (Part B) |
+| `fig_hw_within_fe.pdf` | Within-couple housework allocation | `01_master_hh.R` (Part B) |
 
 ---
 
 ## 8. License
 
-The code is released under the BSD-3-Clause license; see `LICENSE`. The license
-covers this repository only and does not extend to the HILDA data, which remain
-subject to the ADA confidentiality deed.
+The code is released under the BSD-3-Clause license and the documentation under
+CC-BY-4.0; see `LICENSE.txt`. The license covers this repository only and does
+not extend to the HILDA data, which remain subject to the ADA confidentiality
+deed.
 
 ---
 

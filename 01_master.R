@@ -29,22 +29,23 @@
 #
 # PART A  Main couple analysis & breadwinner lock-in
 # PART B  Housework mediation & time-budget test
-# PART C  Panel IV + CR test
+# PART C  Panel IV (parental-education instrument, diagnostic only)
 # PART D  Couple-level DML + causal forest
 # PART E  Robustness battery (Parts 1–10) + all publication figures
 # PART F  Oster (2019) selection bounds for β₂
 # PART G  FTB-B Reform 1 simulated-instrument IV (sourced)
 # =============================================================================
 
-# Working directory: run this script from the folder that contains it (run_all.R
-# sets that up). All inputs and outputs are resolved relative to getwd().
+# Set working directory 
+
+#setwd("C:/Users/tur277/OneDrive - CSIRO/Desktop/WG")
 
 # ── Run logging: tee all console output to a timestamped file ────────────────
 # stdout is split (console + file); messages/warnings (incl. fixest NOTEs)
 # go to the file only. Sinks are closed at the very end of this script.
 log_dir <- file.path(getwd(), "run_logs")
 if (!dir.exists(log_dir)) dir.create(log_dir, recursive = TRUE)
-log_file <- file.path(log_dir, format(Sys.time(), "01_master_%Y%m%d_%H%M%S.log"))
+log_file <- file.path(log_dir, format(Sys.time(), "MASTER_hh_%Y%m%d_%H%M%S.log"))
 # clear any stale sinks left by a previous aborted run
 while (sink.number() > 0) sink()
 if (sink.number(type = "message") > 0) sink(type = "message")
@@ -53,28 +54,12 @@ sink(.log_con, split = TRUE)
 sink(.log_con, type = "message")
 cat("Logging console output to:", log_file, "\n")
 
-# ── Output paths: source config.R for fig_dir / tab_dir (and DATA_MODE) ───────
-# When launched from run_all.R, config.R is already sourced and these exist;
-# the guard makes a standalone run of 01_master.R self-sufficient.
-if (!exists("fig_dir")) {
-  if (file.exists("config.R")) {
-    source("config.R")
-  } else {
-    output_dir <- file.path(getwd(), "output")
-    fig_dir    <- file.path(output_dir, "figures")
-    tab_dir    <- file.path(output_dir, "tables")
-    for (d in c(output_dir, fig_dir, tab_dir))
-      if (!dir.exists(d)) dir.create(d, recursive = TRUE)
-  }
-}
-
-outdir <- fig_dir                       # figures and figure-data copies
+outdir <- file.path(getwd(), "output", "figures")
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 suppressPackageStartupMessages({
   library(tidyverse)
   library(fixest)
-  library(ivcrtest)
   library(lmtest)
   library(sandwich)
   library(patchwork)
@@ -87,10 +72,6 @@ for (pkg in c("DoubleML", "mlr3", "mlr3learners", "ranger", "glmnet", "grf")) {
     stop(sprintf("Package '%s' not found. Run PACKAGES.R first.", pkg))
   suppressPackageStartupMessages(library(pkg, character.only = TRUE))
 }
-# ivcrtest::iv_cr_test() calls ivreg internally; fail fast if it is missing
-# (the 12 June run silently lost all CR tests to "no package called 'ivreg'").
-if (!requireNamespace("ivreg", quietly = TRUE))
-  stop("Package 'ivreg' not found (required by ivcrtest). Run PACKAGES.R first.")
 
 # Thread budget. On a SLURM batch job, use exactly the CPUs allocated
 # (SLURM_CPUS_PER_TASK); otherwise (e.g. an interactive login-node session)
@@ -2110,47 +2091,29 @@ for (g in c("childless_men_ever", "fathers_ever",
 }
 
 
+# Namespace protection (avoid MASS/stats masking dplyr verbs)
+select <- dplyr::select;       filter    <- dplyr::filter
+mutate <- dplyr::mutate;       slice     <- dplyr::slice
+recode <- dplyr::recode;       rename    <- dplyr::rename
+summarise <- dplyr::summarise; summarize <- dplyr::summarize
+arrange <- dplyr::arrange;     count     <- dplyr::count;  lag <- dplyr::lag
+
 ################################################################################
-# PART C: PANEL IV + CR TEST
+# PART C: PANEL IV (parental-education instrument, diagnostic only)
+################################################################################
+# Paper Section V: the descriptive complementarity parameter b2 is reported by
+# individual fixed effects (OLS/FE) and treated as descriptive only. The
+# parental-education x experience instrument is NOT used for a causal reading
+# of b2: parental education plausibly enters the wage equation directly, so the
+# exclusion restriction is implausible on a priori grounds. The pooled IV and
+# FE-IV below are retained as first-stage / weak-instrument diagnostics, and the
+# Altonji-Pierret decomposition is independent of any instrument. The earlier
+# Correlation Restriction (CR) test block has been removed.
+#
+# Assumes the master environment is loaded: `panel` and `stars_fn()` exist.
 ################################################################################
 
-# Paper §5.10 (Panel IV), Table 8: Instruments educ_exp_c using
-#   parental education × experience. "All first-stage F-statistics
-#   comfortably exceed 200."
-# Paper §5.10 (CR test): Contextual Robustness test (Ichimura 2025).
-# Sample: Wage sample with non-missing parental education.
-#   Expected counts: re-verify against the current extract.
-################################################################################
-# PART C: PANEL IV + CR TEST
-################################################################################
-
-cat("=== PANEL IV + CR TEST ===\n")
-
-
-# ── Helper: print recognised CR-test rows only (no NA garbage rows) ──────────
-cr_print_rows <- function(s,
-                          wanted = c("plug_in", "CI_Bei", "p_coverage",
-                                     "Zero_in_CI_Bei", "CI_Bei_contains_TI")) {
-  present <- intersect(wanted, rownames(s))
-  if (length(present) == 0L) {
-    cat("  (no recognised fields; rownames =",
-        paste(rownames(s), collapse = ", "), ")\n")
-    return(invisible(NULL))
-  }
-  cat("  "); print(s[present, , drop = FALSE])
-}
-
-cr_field <- function(s, name) {
-  if (name %in% rownames(s)) as.character(s[name, "V1"]) else "    —"
-}
-
-cr_parse_ci <- function(s) {
-  if (is.na(s) || !is.character(s)) return(c(NA_real_, NA_real_))
-  m <- regmatches(s, regexec(
-    "\\[\\s*(-?[0-9.]+)\\s*,\\s*(-?[0-9.]+)\\s*\\]", s))[[1]]
-  if (length(m) < 3) return(c(NA_real_, NA_real_))
-  c(lo = as.numeric(m[2]), hi = as.numeric(m[3]))
-}
+cat("=== PANEL IV (diagnostic) ===\n")
 
 # ── Build lean Part C wage sample (wage_c), keeping global wage intact ────────
 # Selecting only the columns needed across all Part C sections avoids
@@ -2193,8 +2156,6 @@ group_labels  <- c("Childless men", "Fathers", "Never-mothers", "Mothers")
 
 iv_results          <- list()
 first_stage_results <- list()
-cr_level_results    <- list()
-cr_inter_results    <- list()
 feiv_results        <- list()
 ap_results          <- list()
 
@@ -2307,56 +2268,7 @@ for (i in seq_along(groups)) {
   }
   rm(feiv); gc(verbose = FALSE)
   
-  # ── 4. CR tests: wave dummies built on the group subset only ───────────────
-  # model.matrix on ~16k rows instead of ~64k; discarded immediately after.
-  wave_dm   <- model.matrix(~ wave_f - 1, data = d)
-  wave_cols <- colnames(wave_dm)[-1]          # drop first level (baseline)
-  wave_dm   <- wave_dm[, -1, drop = FALSE]
-  H_vars    <- c("exper_c", "age_sq", "married_num", wave_cols)
-  
-  cat(sprintf("  %s — CR Level (N=%d)...\n", g_lab, n))
-  cr_data_lv <- d %>%
-    select(ln_hourly_wage_real, educ_c, parent_educ_c,
-           exper_c, age_sq, married_num) %>%
-    bind_cols(as.data.frame(wave_dm)) %>%
-    drop_na()
-  
-  cr_level_results[[g]] <- tryCatch(
-    iv_cr_test(
-      data = cr_data_lv, X = "educ_c", Y = "ln_hourly_wage_real",
-      H = H_vars, Z = "parent_educ_c",
-      n = nrow(cr_data_lv), k = 1, alpha = 0.05,
-      seed = 123, rxu_range = c(0, 0.8), bias_mc = TRUE, mc_B = 200
-    ),
-    error = function(e) { cat("  CR Level ERROR:", e$message, "\n"); NULL })
-  if (!is.null(cr_level_results[[g]])) {
-    s <- as.data.frame(do.call(rbind, cr_level_results[[g]]))
-    cr_print_rows(s)
-  }
-  rm(cr_data_lv); gc(verbose = FALSE)
-  
-  cat(sprintf("  %s — CR Interaction (N=%d)...\n", g_lab, n))
-  cr_data_int <- d %>%
-    select(ln_hourly_wage_real, educ_exp_c, parent_educ_exp_c,
-           exper_c, age_sq, married_num) %>%
-    bind_cols(as.data.frame(wave_dm)) %>%
-    drop_na()
-  
-  cr_inter_results[[g]] <- tryCatch(
-    iv_cr_test(
-      data = cr_data_int, X = "educ_exp_c", Y = "ln_hourly_wage_real",
-      H = H_vars, Z = "parent_educ_exp_c",
-      n = nrow(cr_data_int), k = 1, alpha = 0.05,
-      seed = 123, rxu_range = c(0, 0.8), bias_mc = TRUE, mc_B = 200
-    ),
-    error = function(e) { cat("  CR Inter ERROR:", e$message, "\n"); NULL })
-  if (!is.null(cr_inter_results[[g]])) {
-    s <- as.data.frame(do.call(rbind, cr_inter_results[[g]]))
-    cr_print_rows(s)
-  }
-  rm(cr_data_int, wave_dm, wave_cols, H_vars); gc(verbose = FALSE)
-  
-  # ── 5. Altonji-Pierret decomposition ───────────────────────────────────────
+  # ── 4. Altonji-Pierret decomposition ───────────────────────────────────────
   m_ap <- tryCatch(
     feols(
       ln_hourly_wage_real ~ educ_c + parent_educ_c + S_t + Z_t +
@@ -2413,26 +2325,6 @@ for (i in seq_along(groups)) {
 }
 cat(paste(rep("─", 70), collapse = ""), "\n")
 
-cat("\n=== CR TEST SUMMARY (interaction β₂) ===\n")
-cat(sprintf("%-14s %18s %18s %12s\n",
-            "Group", "Ident.Set", "CI(Bei)", "0 in CI?"))
-cat(paste(rep("─", 65), collapse = ""), "\n")
-for (i in seq_along(groups)) {
-  g <- groups[i]
-  if (!is.null(cr_inter_results[[g]])) {
-    s   <- as.data.frame(do.call(rbind, cr_inter_results[[g]]))
-    plg <- cr_field(s, "plug_in")
-    bei <- cr_field(s, "CI_Bei")
-    cib <- cr_parse_ci(bei)
-    verdict <- if (any(is.na(cib))) "—"
-    else if (cib[1] <= 0 && cib[2] >= 0) "Yes"
-    else "No (rejected)"
-    cat(sprintf("%-14s %18s %18s %12s\n",
-                group_labels[i], plg, bei, verdict))
-  }
-}
-cat(paste(rep("─", 65), collapse = ""), "\n")
-
 cat("\n=== ALTONJI-PIERRET SUMMARY ===\n")
 cat(sprintf("%-16s %12s %12s %12s %12s %6s\n",
             "Group", "b1: S", "b2: Z", "b3: S×t", "b4: Z×t", "N"))
@@ -2473,11 +2365,18 @@ cat("  Wrote se_ledger_ap.csv (Altonji-Pierret b1-b4 + clustered SEs).\n")
 
 saveRDS(
   list(first_stage = first_stage_results, iv = iv_results,
-       feiv = feiv_results, cr_level = cr_level_results,
-       cr_inter = cr_inter_results, ap = ap_results),
-  "iv_cr_test_results.rds"
+       feiv = feiv_results, ap = ap_results),
+  "panel_iv_results.rds"
 )
-cat("\nSaved: iv_cr_test_results.rds\nDone.\n")
+cat("\nSaved: panel_iv_results.rds\nDone.\n")
+
+# Pin the RNG state at the PART C -> PART D handoff. PART C is now fully
+# deterministic (the CR Monte Carlo that previously consumed draws here has
+# been removed). The downstream stochastic steps (DML cross-fitting, causal
+# forest) already call set.seed(42) locally before drawing, so this is a
+# belt-and-suspenders reset to the documented global seed and pins the
+# .Random.seed captured by the checkpoint below.
+set.seed(42)
 
 save.image("master_state_after_partC.RData")  # after PART C
 ################################################################################
@@ -4207,9 +4106,9 @@ cat("% beta*(delta=1): Oster bound under equal selection.\n")
 cat("% delta < 0 for childless groups: FE > OLS, selection must work against observables.\n\n")
 
 # --- Save Oster results ---
-saveRDS(oster_results, file.path(tab_dir, "oster_bounds.rds"))
-write.csv(oster_results, file.path(tab_dir, "oster_bounds.csv"), row.names = FALSE)
-cat(sprintf("  \u2713 Saved: %s\n", file.path(tab_dir, "oster_bounds.csv")))
+saveRDS(oster_results, file.path(outdir, "oster_bounds.rds"))
+write.csv(oster_results, file.path(outdir, "oster_bounds.csv"), row.names = FALSE)
+cat(sprintf("  \u2713 Saved: %s\n", file.path(outdir, "oster_bounds.csv")))
 
 
 # #############################################################################
@@ -4633,53 +4532,53 @@ if (nrow(nm) > 0 && nrow(pm) > 0) {
 }
 
 # ==============================================================================
-# PART G: FTB-B REFORM 1 IV  (sourced from 04_part_g_ftbb_iv.R)
+# PART G: FTB-B REFORM 1 IV  (sourced from MASTER_PART_G_FTBB_IV.R)
 # Identifies theta on S_ct using the 2015 FTB-B income-threshold reform.
 # Produces ftbb_reform1_iv_results.rds and the iv_summary table.
 # ==============================================================================
 
 # ── Child-penalty event study (Sun-Abraham); writes cs_event_study_results.rds ──
 #    Reuses the full `panel` already in memory; figure is left to RUN_FIGURES_hh.R.
-if (file.exists("02_cs_event_study.R")) {
+if (file.exists("CS_event_study.R")) {
   options(cs_estimation_only = TRUE)
-  tryCatch(source("02_cs_event_study.R"),
+  tryCatch(source("CS_event_study.R"),
            error = function(e)
-             cat(sprintf("  NOTE: 02_cs_event_study.R did not complete (%s); run it standalone.\n",
+             cat(sprintf("  NOTE: CS_event_study.R did not complete (%s); run it standalone.\n",
                          conditionMessage(e))))
   options(cs_estimation_only = NULL)
 } else {
-  cat("  NOTE: 02_cs_event_study.R not found; cs_event_study_results.rds not refreshed.\n")
+  cat("  NOTE: CS_event_study.R not found; cs_event_study_results.rds not refreshed.\n")
 }
 
-if (file.exists("04_part_g_ftbb_iv.R")) {
-  source("04_part_g_ftbb_iv.R")
+if (file.exists("MASTER_PART_G_FTBB_IV.R")) {
+  source("MASTER_PART_G_FTBB_IV.R")
 } else {
-  warning("04_part_g_ftbb_iv.R not found in working directory; ",
+  warning("MASTER_PART_G_FTBB_IV.R not found in working directory; ",
           "PART G skipped. FTB-B IV results will not be available.")
 }
 
 # ── PART H: policy economics of the FTB-B reform (needs Part G objects) ─────
-if (file.exists("05_part_h_policy.R") && exists("iv_couples")) {
-  tryCatch(source("05_part_h_policy.R"),
+if (file.exists("Master_part_h_policy.R") && exists("iv_couples")) {
+  tryCatch(source("Master_part_h_policy.R"),
            error = function(e)
              cat(sprintf("  NOTE: PART H did not complete (%s); run it standalone.\n",
                          conditionMessage(e))))
-} else if (!file.exists("05_part_h_policy.R")) {
-  cat("  NOTE: 05_part_h_policy.R not found; PART H skipped.\n")
+} else if (!file.exists("Master_part_h_policy.R")) {
+  cat("  NOTE: Master_part_h_policy.R not found; PART H skipped.\n")
 } else {
   cat("  NOTE: Part G objects missing; PART H skipped.\n")
 }
 
 # ── Training event study (Sun-Abraham, training outcomes) ──────────────────
-if (file.exists("03_training_event_study.R")) {
+if (file.exists("training_event_study.R")) {
   options(training_estimation_only = TRUE)
-  tryCatch(source("03_training_event_study.R"),
+  tryCatch(source("training_event_study.R"),
            error = function(e)
              cat(sprintf("  NOTE: training event study did not complete (%s).\n",
                          conditionMessage(e))))
   options(training_estimation_only = NULL)
 } else {
-  cat("  NOTE: 03_training_event_study.R not found; skipped.\n")
+  cat("  NOTE: training_event_study.R not found; skipped.\n")
 }
 # NOTE: sourced BEFORE the FINAL VERIFICATION block below so that the
 # verification's §5.10 line can read ftbb_reform1_iv_results from memory
