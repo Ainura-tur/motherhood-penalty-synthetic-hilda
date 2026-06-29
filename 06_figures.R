@@ -1182,7 +1182,7 @@ stacked <- bind_rows(his_stack, her_stack) %>%
          person_couple = paste0(couple_id, "_", is_female))
 
 num_rows    <- format(nrow(stacked), big.mark = ",")
-num_persons <- format(n_distinct(stacked$person_id), big.mark = ",")
+num_persons <- format(n_distinct(stacked$person_couple), big.mark = ",")
 cat(paste(num_rows, "obs |", num_persons, "individuals\n"))
 
 
