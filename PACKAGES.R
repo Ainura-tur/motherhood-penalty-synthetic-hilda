@@ -12,12 +12,6 @@
 # Newer versions will usually work; the pins document what was actually run.
 # =============================================================================
 
-# ── Namespace protection (avoid MASS/stats masking dplyr verbs) ───────────────
-select <- dplyr::select;       filter    <- dplyr::filter
-mutate <- dplyr::mutate;       slice     <- dplyr::slice
-recode <- dplyr::recode;       rename    <- dplyr::rename
-summarise <- dplyr::summarise; summarize <- dplyr::summarize
-arrange <- dplyr::arrange;     count     <- dplyr::count;  lag <- dplyr::lag
 
 # ── CRAN dependencies (package = version used in the reference run) ───────────
 # tidyverse pulls dplyr, ggplot2, tidyr, purrr, readr, tibble, stringr,
